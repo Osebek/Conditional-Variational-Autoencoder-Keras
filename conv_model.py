@@ -18,6 +18,7 @@ def make_decoder():
 	label = Input(shape=(1,),dtype='int32')
 	label_embedding = Flatten()(Embedding(num_classes,np.prod(gene_shape)))(label)
 	flat_gene = Flatten()(gene)
+
 	model_input = multiply([flat_gene,label_embedding])
 	model = Reshape(gene_shape)(model_input)
 	model = Conv2D(8,(3,3),activation='relu',padding='same')(model)

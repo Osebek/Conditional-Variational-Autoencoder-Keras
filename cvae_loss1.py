@@ -31,9 +31,9 @@ class LossHistory(Callback):
 
 # load mnist
 #(X_train, y_train), (X_test, y_test) = mnist.load_data()
-img_rows = 150
-img_cols = 150
-img_chnls = 1
+img_rows = 64
+img_cols = 64
+img_chnls =  64
 img_shape =  (img_rows,img_cols,img_chnls)
 num_classes = 11
 (X_train,y_train),(X_test,y_test) = read_utk_face('UTKFace/',size=(img_rows,img_cols))
@@ -57,13 +57,13 @@ optim = 'adam'
 
 # dimension of latent space (batch size by latent dim)
 m = 50
-n_z = 250
+n_z = 150
 
 # dimension of input (and label)
 n_x = X_train.shape[1]
 n_y = y_train.shape[1]
 # nubmer of epochs
-n_epoch = 20
+n_epoch = 10
 
 
 ##  ENCODER ##
@@ -115,38 +115,38 @@ decoder = Model(d_in, d_out)
 def vae_loss(y_true, y_pred):
     # E[log P(X|z)]
     recon = K.sum(K.binary_crossentropy(y_pred, y_true), axis=1)
-    recon = recon/float(img_rows*img_cols)
+    recon = recon/20000
    
      # D_KL(Q(z|X) || P(z|X))
     kl = 0.5 * K.sum(K.exp(log_sigma) + K.square(mu) - 1. - log_sigma, axis=1)
-    kl = kl/float(n_z)
-    l2 = K.sqrt(K.sum(K.square(y_true - y_pred),axis=-1,keepdims=True))/float(img_rows*img_cols)
-    return recon+0.001*kl+0.001*l2
+    kl = kl/250 
+    l2 = l2_loss(y_true,y_pred)  
+    return l2+kl
 
 def KL_loss(y_true, y_pred):
 	kl  = 0.5 * K.sum(K.exp(log_sigma) + K.square(mu) - 1. - log_sigma, axis=1) 
-	return kl/float(n_z)
+	return kl/250 
 
 def recon_loss(y_true, y_pred):
 	recon = K.sum(K.binary_crossentropy(y_pred, y_true), axis=1)	
-	return recon/float(img_rows*img_cols)
+	return recon/20000
 
-def l2_loss(y_true,y_pred):
-	return K.sqrt(K.sum(K.square(y_true - y_pred),axis=-1,keepdims=True))
+def l2_loss(y_true, y_pred):
+	return K.sqrt(K.sum(K.square(y_true - y_pred), axis=-1, keepdims=True))
+
 
 
 tb = LossHistory()
 # compile and fit
 cvae.compile(optimizer=optim, loss=vae_loss, metrics = [KL_loss, recon_loss])
-#cvae.load_weights('saved_models/250_dim/combined_loss_10.h5') # focus on idetity, 50 epochs, pretty good
-#cvae.load_weights('saved_models/250_dim/adj_loss_3_agefocus_50_epoch.h5') 
+#cvae.load_weights('saved_models/250_dim/cvae_weights_adjustedloss3_20_full.h5')
 vae_hist = cvae.fit([X_train, y_train], X_train, batch_size=m, epochs=n_epoch,
 							validation_data = ([X_test, y_test], X_test),
 							callbacks = [EarlyStopping(patience = 5),tb])
 
 
 
-cvae.save_weights('saved_models/250_dim/combined_loss_10_1.h5')
+cvae.save_weights('saved_models/l2_loss/try2_small.h5')
 #cvae.load_weights('cvae_weights.h5')
 # this loop prints the one-hot decodings
 
